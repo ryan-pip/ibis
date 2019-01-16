@@ -110,11 +110,13 @@ class CreateTable(CreateDDL):
     """
 
     def __init__(self, table_name, database=None, external=False,
+                 table_description = None,
                  format='parquet', can_exist=False,
                  partition=None, path=None,
                  tbl_properties=None):
         self.table_name = table_name
         self.database = database
+        self.table_description = table_description
         self.partition = partition
         self.path = path
         self.external = external
@@ -134,6 +136,9 @@ class CreateTable(CreateDDL):
         return '{} {}{}'.format(
             self._prefix, self._if_exists(), scoped_name
         )
+
+    def _comment(self):
+        return "COMMENT '{}'".format(self.table_description) if self.table_description else None
 
     def _location(self):
         return "LOCATION '{}'".format(self.path) if self.path else None
@@ -227,6 +232,7 @@ class CreateTableParquet(CreateTable):
         else:
             raise NotImplementedError
 
+        yield self._comment()
         yield self._storage()
         yield self._location()
 
@@ -246,7 +252,8 @@ class CreateTableWithSchema(CreateTable):
             if not isinstance(part_schema, sch.Schema):
                 part_schema = sch.Schema(
                     part_schema,
-                    [self.schema[name] for name in part_schema])
+                    [self.schema[name]['type'] for name in part_schema],
+                    [self.schema[name]['description'] for name in part_schema])
 
             to_delete = []
             for name in self.partition:
@@ -260,6 +267,8 @@ class CreateTableWithSchema(CreateTable):
             yield 'PARTITIONED BY {}'.format(format_schema(part_schema))
         else:
             yield format_schema(self.schema)
+        
+        yield self._comment()
 
         if self.table_format is not None:
             yield '\n'.join(self.table_format.to_ddl())
@@ -651,15 +660,18 @@ class DropDatabase(DropObject):
 
 
 def format_schema(schema):
-    elements = [_format_schema_element(name, t)
-                for name, t in zip(schema.names, schema.types)]
+    elements = [_format_schema_element(name, t, d)
+                for name, t, d in zip(schema.names, schema.types, schema.descriptions)]
     return '({})'.format(',\n '.join(elements))
 
 
-def _format_schema_element(name, t):
-    return '{} {}'.format(
+def _format_schema_element(name, t, d):
+    elem = '{} {}'.format(
         quote_identifier(name, force=True), _type_to_sql_string(t)
     )
+    if d is not None :
+        elem += "COMMENT '" + d + '"'
+    return elem
 
 
 class CreateFunction(ImpalaDDL):

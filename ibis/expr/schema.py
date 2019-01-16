@@ -65,7 +65,10 @@ class Schema:
         return name in self._name_locs
 
     def __getitem__(self, name):
-        return self.types[self._name_locs[name]]
+        item = {
+            'type' : self.types[self._name_locs[name]], 
+            'description' : self.descriptions[self._name_locs[name]]
+        }
 
     def __getstate__(self):
         return {
