@@ -9,7 +9,7 @@ import ibis.expr.datatypes as dt
 class Schema:
 
     """An object for holding table schema information, i.e., column names and
-    types.
+    types and descriptions
 
     Parameters
     ----------
@@ -18,16 +18,22 @@ class Schema:
     types : Sequence[DataType]
         A sequence of :class:`ibis.expr.datatypes.DataType` objects
         representing type of each column.
+    descriptions : Sequence[str]
+        A sequence of ``str`` indicating the descriptions of each column
     """
 
-    __slots__ = 'names', 'types', '_name_locs'
+    __slots__ = 'names', 'types', 'descriptions', '_name_locs'
 
-    def __init__(self, names, types):
+    def __init__(self, names, types, descriptions = None):
         if not isinstance(names, list):
             names = list(names)
 
         self.names = names
         self.types = list(map(dt.dtype, types))
+        if descriptions is None :
+            self.descriptions = [None] * len(names)
+        else :
+            self.descriptions = descriptions
 
         self._name_locs = dict((v, i) for i, v in enumerate(self.names))
 
@@ -39,15 +45,15 @@ class Schema:
         return "ibis.Schema {{{}\n}}".format(
             util.indent(
                 ''.join(
-                    '\n{}{}'.format(name.ljust(space), str(type))
-                    for name, type in zip(self.names, self.types)
+                    '\n{}{}{}'.format(name.ljust(space), str(type).ljust(space), description)
+                    for name, type, description in zip(self.names, self.types, self.descriptions)
                 ),
                 2
             )
         )
 
     def __hash__(self):
-        return hash((type(self), tuple(self.names), tuple(self.types)))
+        return hash((type(self), tuple(self.names), tuple(self.types), tuple(self.descriptions)))
 
     def __len__(self):
         return len(self.names)
@@ -68,36 +74,39 @@ class Schema:
 
     def __setstate__(self, instance_dict):
         for key, value in instance_dict.items():
-            setattr(self, key, value)
+            setattr(self, key, value, descriptions)
 
     def delete(self, names_to_delete):
         for name in names_to_delete:
             if name not in self:
                 raise KeyError(name)
 
-        new_names, new_types = [], []
-        for name, type_ in zip(self.names, self.types):
+        new_names, new_types, new_descriptions = [], [], []
+        for name, type_, desc in zip(self.names, self.types, self.descriptions):
             if name in names_to_delete:
                 continue
             new_names.append(name)
             new_types.append(type_)
+            new_descriptions.append(desc)
 
-        return Schema(new_names, new_types)
+        return Schema(new_names, new_types, new_descriptions)
 
     @classmethod
     def from_tuples(cls, values):
         if not isinstance(values, (list, tuple)):
             values = list(values)
+        
+        values = [v + (None,) if len(v) == 2 else v for v in values]
 
-        names, types = zip(*values) if values else ([], [])
-        return Schema(names, types)
+        names, types, descriptions = zip(*values) if values else ([], [], [])
+        return Schema(names, types, descriptions)
 
     @classmethod
     def from_dict(cls, dictionary):
         return Schema(*zip(*dictionary.items()))
 
     def equals(self, other, cache=None):
-        return self.names == other.names and self.types == other.types
+        return self.names == other.names and self.types == other.types and self.descriptions == other.descriptions
 
     def __eq__(self, other):
         return self.equals(other)
@@ -109,10 +118,12 @@ class Schema:
         return set(self.items()) >= set(other.items())
 
     def append(self, schema):
-        return Schema(self.names + schema.names, self.types + schema.types)
+        return Schema(self.names + schema.names, 
+            self.types + schema.types, 
+            self.descriptions + schema.descriptions)
 
     def items(self):
-        return zip(self.names, self.types)
+        return zip(self.names, self.types, self.descriptions)
 
     def name_at_position(self, i):
         """
@@ -178,3 +189,7 @@ def schema_from_pairs(lst):
 @schema.register(collections.Iterable, collections.Iterable)
 def schema_from_names_types(names, types):
     return Schema(names, types)
+
+@schema.register(collections.Iterable, collections.Iterable, collections.Iterable)
+def schema_from_names_types_descriptions(names, types, descriptions):
+    return Schema(names, types, descriptions)

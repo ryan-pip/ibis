@@ -5,7 +5,7 @@ from ibis.expr import datatypes as dt
 def test_whole_schema():
     customers = ibis.table(
         [
-            ('cid', 'int64'),
+            ('cid', 'int64', 'cid description'),
             ('mktsegment', 'string'),
             ('address', ('struct<city: string, street: string, '
                          'street_number: int32, zip: int16>')),
@@ -37,7 +37,7 @@ def test_whole_schema():
     )
     expected = ibis.Schema.from_tuples(
         [
-            ('cid', dt.int64),
+            ('cid', dt.int64, 'cid description'),
             ('mktsegment', dt.string),
             (
                 'address',
@@ -96,14 +96,14 @@ def test_whole_schema():
 
 def test_schema_subset():
     s1 = ibis.schema([
-        ('a', dt.int64),
-        ('b', dt.int32),
-        ('c', dt.string)
+        ('a', dt.int64, 'a'),
+        ('b', dt.int32, 'b'),
+        ('c', dt.string, 'c')
     ])
 
     s2 = ibis.schema([
-        ('a', dt.int64),
-        ('c', dt.string)
+        ('a', dt.int64, 'a'),
+        ('c', dt.string, 'c')
     ])
 
     assert s1 > s2
