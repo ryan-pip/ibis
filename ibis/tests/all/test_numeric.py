@@ -11,6 +11,7 @@ import pandas as pd
 import ibis
 import ibis.tests.util as tu
 
+from ibis.compat import map
 from ibis import literal as L
 from ibis.tests.backends import MapD
 

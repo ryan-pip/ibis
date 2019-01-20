@@ -1,6 +1,11 @@
-multipledispatch>=0.6.0
+enum34; python_version < '3'
+funcsigs; python_version < '3'
+functools32; python_version < '3'
+multipledispatch
 numpy>=1.11
 pandas>=0.20
+pathlib2; python_version < '3'
 pytz
 regex
+six
 toolz

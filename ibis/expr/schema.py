@@ -6,7 +6,7 @@ import ibis.util as util
 import ibis.expr.datatypes as dt
 
 
-class Schema:
+class Schema(object):
 
     """An object for holding table schema information, i.e., column names and
     types and descriptions
@@ -141,7 +141,7 @@ class Schema:
         return self.names[i]
 
 
-class HasSchema:
+class HasSchema(object):
 
     """
     Base class representing a structured dataset with a well-defined

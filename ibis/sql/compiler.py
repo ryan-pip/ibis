@@ -6,7 +6,9 @@ import abc
 from collections import OrderedDict
 from itertools import chain
 
-from io import StringIO
+import six
+
+from six import StringIO
 
 import toolz
 
@@ -20,20 +22,24 @@ import ibis.expr.analytics as analytics
 import ibis.expr.operations as ops
 import ibis.sql.transforms as transforms
 
+from ibis.compat import map
 
-class DML(abc.ABC):
+
+@six.add_metaclass(abc.ABCMeta)
+class DML(object):
     @abc.abstractmethod
     def compile(self):
         pass
 
 
-class DDL(abc.ABC):
+@six.add_metaclass(abc.ABCMeta)
+class DDL(object):
     @abc.abstractmethod
     def compile(self):
         pass
 
 
-class QueryAST:
+class QueryAST(object):
 
     __slots__ = 'context', 'dml', 'setup_queries', 'teardown_queries'
 
@@ -62,7 +68,7 @@ class QueryAST:
         )))
 
 
-class SelectBuilder:
+class SelectBuilder(object):
 
     """
     Transforms expression IR to a query pipeline (potentially multiple
@@ -600,7 +606,7 @@ def extract_noop(self, _):
     return
 
 
-class ExtractSubqueries:
+class ExtractSubqueries(object):
     def __init__(self, query, greedy=False):
         self.query = query
         self.greedy = greedy
@@ -712,7 +718,7 @@ def foreign_ref_check(query, expr):
     return checker.get_result()
 
 
-class CorrelatedRefCheck:
+class CorrelatedRefCheck(object):
 
     def __init__(self, query, expr):
         self.query = query
@@ -979,7 +985,7 @@ def flatten_union(table):
     return [table]
 
 
-class QueryBuilder:
+class QueryBuilder(object):
 
     select_builder = SelectBuilder
     union_class = Union
@@ -1040,7 +1046,7 @@ class QueryBuilder:
         return builder.get_result()
 
 
-class QueryContext:
+class QueryContext(object):
 
     """Records bits of information used during ibis AST to SQL translation.
 
@@ -1215,7 +1221,7 @@ class QueryContext:
         return False
 
 
-class ExprTranslator:
+class ExprTranslator(object):
 
     """Class that performs translation of ibis expressions into executable
     SQL.
@@ -1404,7 +1410,7 @@ def _notall_expand(expr):
     return arg.sum() < t.count()
 
 
-class Dialect:
+class Dialect(object):
 
     """Dialects encode the properties of a particular flavor of SQL.
 
@@ -1700,7 +1706,7 @@ class Select(DML):
         return buf.getvalue()
 
 
-class TableSetFormatter:
+class TableSetFormatter(object):
 
     _join_names = {
         ops.InnerJoin: 'INNER JOIN',

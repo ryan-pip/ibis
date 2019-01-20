@@ -1,10 +1,8 @@
 import collections
-import functools
 import itertools
 import operator
 
-from contextlib import suppress
-
+import six
 import toolz
 
 from ibis.expr.schema import HasSchema, Schema
@@ -15,7 +13,8 @@ import ibis.expr.rules as rlz
 import ibis.expr.schema as sch
 import ibis.expr.datatypes as dt
 
-from ibis import util
+from ibis import util, compat
+from ibis.compat import functools, map, zip
 from ibis.expr.signature import Annotable, Argument as Arg
 
 
@@ -68,7 +67,7 @@ class Node(Annotable):
 
     def flat_args(self):
         for arg in self.args:
-            if not isinstance(arg, str) and isinstance(
+            if not isinstance(arg, six.string_types) and isinstance(
                 arg, collections.Iterable
             ):
                 for x in arg:
@@ -210,14 +209,14 @@ class TableNode(Node):
 class TableColumn(ValueOp):
     """Selects a column from a TableExpr"""
 
-    name = Arg((str, int))
+    name = Arg(six.string_types + six.integer_types)
     table = Arg(ir.TableExpr)
 
     def __init__(self, name, table):
         schema = table.schema()
-        if isinstance(name, int):
+        if isinstance(name, six.integer_types):
             name = schema.name_at_position(name)
-        super().__init__(name, table)
+        super(TableColumn, self).__init__(name, table)
 
     def _validate(self):
         if self.name not in self.table.schema():
@@ -242,7 +241,7 @@ class TableColumn(ValueOp):
 
     def _make_expr(self):
         dtype = self.table._get_type(self.name)
-        klass = dtype.column_type()
+        klass = dtype.array_type()
         return klass(self, name=self.name)
 
 
@@ -272,11 +271,11 @@ class PhysicalTable(TableNode, HasSchema):
 
 class UnboundTable(PhysicalTable):
     schema = Arg(sch.Schema)
-    name = Arg(str, default=genname)
+    name = Arg(six.string_types, default=genname)
 
 
 class DatabaseTable(PhysicalTable):
-    name = Arg(str)
+    name = Arg(six.string_types)
     schema = Arg(sch.Schema)
     source = Arg(rlz.client)
 
@@ -302,7 +301,7 @@ class TableArrayView(ValueOp):
     subqueries to be viewed as arrays)
     """
     table = Arg(ir.TableExpr)
-    name = Arg(str)
+    name = Arg(six.string_types)
 
     def __init__(self, table):
         schema = table.schema()
@@ -310,11 +309,11 @@ class TableArrayView(ValueOp):
             raise com.ExpressionError('Table can only have a single column')
 
         name = schema.names[0]
-        return super().__init__(table, name)
+        return super(TableArrayView, self).__init__(table, name)
 
     def _make_expr(self):
         ctype = self.table._get_type(self.name)
-        klass = ctype.column_type()
+        klass = ctype.array_type()
         return klass(self, name=self.name)
 
 
@@ -536,7 +535,7 @@ class MathUnaryOp(UnaryOp):
 class ExpandingTypeMathUnaryOp(MathUnaryOp):
     def output_type(self):
         if not isinstance(self.arg, ir.DecimalValue):
-            return super().output_type()
+            return super(ExpandingTypeMathUnaryOp, self).output_type()
         arg = self.arg
         return rlz.shape_like(arg, arg.type().largest)
 
@@ -726,7 +725,7 @@ class StringJoin(ValueOp):
         return rlz.shape_like(tuple(self.flat_args()), dt.string)
 
 
-class BooleanValueOp:
+class BooleanValueOp(object):
     pass
 
 
@@ -739,7 +738,7 @@ class FuzzySearch(ValueOp, BooleanValueOp):
 class StringSQLLike(FuzzySearch):
     arg = Arg(rlz.string)
     pattern = Arg(rlz.string)
-    escape = Arg(str, default=None)
+    escape = Arg(six.string_types, default=None)
 
 
 class StringSQLILike(StringSQLLike):
@@ -1002,7 +1001,7 @@ class WindowOp(ValueOp):
             window = window.bind(table)
 
         expr = propagate_down_window(expr, window)
-        super().__init__(expr, window)
+        super(WindowOp, self).__init__(expr, window)
 
     def over(self, window):
         new_window = self.window.combine(window)
@@ -1045,7 +1044,7 @@ class Lead(ShiftBase):
 class RankBase(AnalyticOp):
 
     def output_type(self):
-        return dt.int64.column_type()
+        return dt.int64.array_type()
 
 
 class MinRank(RankBase):
@@ -1126,7 +1125,7 @@ class CumulativeSum(CumulativeOp):
             dtype = dt.int64
         else:
             dtype = self.arg.type().largest
-        return dtype.column_type()
+        return dtype.array_type()
 
 
 class CumulativeMean(CumulativeOp):
@@ -1138,7 +1137,7 @@ class CumulativeMean(CumulativeOp):
             dtype = self.arg.type().largest
         else:
             dtype = dt.float64
-        return dtype.column_type()
+        return dtype.array_type()
 
 
 class CumulativeMax(CumulativeOp):
@@ -1254,7 +1253,7 @@ class Any(ValueOp):
         if self._reduction:
             return dt.boolean.scalar_type()
         else:
-            return dt.boolean.column_type()
+            return dt.boolean.array_type()
 
     def negate(self):
         return NotAny(self.arg)
@@ -1293,7 +1292,7 @@ class CumulativeAll(CumulativeOp):
 
 # ---------------------------------------------------------------------
 
-class TypedCaseBuilder:
+class TypedCaseBuilder(object):
     __slots__ = ()
 
     def type(self):
@@ -1522,7 +1521,7 @@ def _clean_join_predicates(left, right, predicates):
             lk = left._ensure_expr(lk)
             rk = right._ensure_expr(rk)
             pred = lk == rk
-        elif isinstance(pred, str):
+        elif isinstance(pred, six.string_types):
             pred = left[pred] == right[pred]
         elif not isinstance(pred, ir.Expr):
             raise NotImplementedError
@@ -1558,7 +1557,7 @@ class Join(TableNode):
         _validate_join_tables(left, right)
         left, right, predicates = _make_distinct_join_predicates(left, right,
                                                                  predicates)
-        super().__init__(left, right, predicates)
+        super(Join, self).__init__(left, right, predicates)
 
     def _get_schema(self):
         # For joins retaining both table schemas, merge them together here
@@ -1677,7 +1676,7 @@ class AsOfJoin(Join):
     tolerance = Arg(rlz.interval(), default=None)
 
     def __init__(self, left, right, predicates, by, tolerance):
-        super().__init__(left, right, predicates)
+        super(AsOfJoin, self).__init__(left, right, predicates)
         self.by = _clean_join_predicates(self.left, self.right, by)
         self.tolerance = tolerance
 
@@ -1739,7 +1738,7 @@ def to_sort_key(table, key):
         if isinstance(key, (ir.SortExpr, DeferredSortKey)):
             return to_sort_key(table, key)
 
-    if isinstance(sort_order, str):
+    if isinstance(sort_order, six.string_types):
         if sort_order.lower() in ('desc', 'descending'):
             sort_order = False
         elif not isinstance(sort_order, bool):
@@ -1776,7 +1775,7 @@ class SortKey(Node):
         return self.expr.get_name()
 
 
-class DeferredSortKey:
+class DeferredSortKey(object):
 
     def __init__(self, what, ascending=True):
         self.what = what
@@ -1821,7 +1820,7 @@ class Selection(TableNode, HasSchema):
 
         projections = []
         for selection in selections:
-            if isinstance(selection, str):
+            if isinstance(selection, six.string_types):
                 projection = table[selection]
             else:
                 projection = selection
@@ -1839,12 +1838,9 @@ class Selection(TableNode, HasSchema):
             predicates if predicates is not None else []
         )))
 
-        super().__init__(
-            table=table,
-            selections=projections,
-            predicates=predicates,
-            sort_keys=sort_keys
-        )
+        super(Selection, self).__init__(table=table, selections=projections,
+                                        predicates=predicates,
+                                        sort_keys=sort_keys)
 
     def _validate(self):
         from ibis.expr.analysis import FilterValidator
@@ -1937,7 +1933,7 @@ class Selection(TableNode, HasSchema):
         return Selection(expr, [], sort_keys=sort_exprs)
 
 
-class AggregateSelection:
+class AggregateSelection(object):
     # sort keys cannot be discarded because of order-dependent
     # aggregate functions like GROUP_CONCAT
 
@@ -2039,14 +2035,9 @@ class Aggregation(TableNode, HasSchema):
         predicates = self._rewrite_exprs(table, predicates)
         sort_keys = self._rewrite_exprs(table, sort_keys)
 
-        super().__init__(
-            table=table,
-            metrics=metrics,
-            by=by,
-            having=having,
-            predicates=predicates,
-            sort_keys=sort_keys
-        )
+        super(Aggregation, self).__init__(table=table, metrics=metrics, by=by,
+                                          having=having, predicates=predicates,
+                                          sort_keys=sort_keys)
 
     def _validate(self):
         from ibis.expr.analysis import is_reduction
@@ -2198,14 +2189,14 @@ class Comparison(BinaryOp, BooleanValueOp):
         :param left:
         :param right:
         """
-        super().__init__(*self._maybe_cast_args(left, right))
+        super(BinaryOp, self).__init__(*self._maybe_cast_args(left, right))
 
     def _maybe_cast_args(self, left, right):
         # it might not be necessary?
-        with suppress(com.IbisTypeError):
+        with compat.suppress(com.IbisTypeError):
             return left, rlz.cast(right, left)
 
-        with suppress(com.IbisTypeError):
+        with compat.suppress(com.IbisTypeError):
             return rlz.cast(left, right), right
 
         return left, right
@@ -2282,7 +2273,7 @@ class Contains(ValueOp, BooleanValueOp):
             else:
                 # or a set of scalar values
                 options = frozenset(options)
-        super().__init__(value, options)
+        super(Contains, self).__init__(value, options)
 
     def output_type(self):
         all_args = [self.value]
@@ -2313,7 +2304,7 @@ class SummaryFilter(ValueOp):
     expr = Arg(rlz.noop)
 
     def output_type(self):
-        return dt.boolean.column_type()
+        return dt.boolean.array_type()
 
 
 class TopK(ValueOp):
@@ -2331,7 +2322,7 @@ class TopK(ValueOp):
         if not isinstance(k, int) or k < 0:
             raise ValueError('k must be positive integer, was: {0}'.format(k))
 
-        super().__init__(arg, k, by)
+        super(ValueOp, self).__init__(arg, k, by)
 
     def output_type(self):
         return ir.TopKExpr
@@ -2781,7 +2772,7 @@ class MapConcat(ValueOp):
 
 class StructField(ValueOp):
     arg = Arg(rlz.struct)
-    field = Arg(str)
+    field = Arg(six.string_types)
 
     def output_type(self):
         struct_dtype = self.arg.type()
@@ -2855,7 +2846,7 @@ class ExpressionList(Node):
     exprs = Arg(rlz.noop)
 
     def __init__(self, values):
-        super().__init__(list(map(rlz.any, values)))
+        super(ExpressionList, self).__init__(list(map(rlz.any, values)))
 
     @property
     def inputs(self):
@@ -2875,7 +2866,7 @@ class ValueList(ValueOp):
     display_argnames = False  # disable showing argnames in repr
 
     def __init__(self, values):
-        super().__init__(tuple(map(rlz.any, values)))
+        super(ValueList, self).__init__(tuple(map(rlz.any, values)))
 
     def output_type(self):
         dtype = rlz.highest_precedence_dtype(self.values)

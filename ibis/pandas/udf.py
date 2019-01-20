@@ -5,11 +5,10 @@ functions.
 from __future__ import absolute_import
 
 import collections
-import functools
 import itertools
 import operator
 
-from inspect import Parameter, signature
+import six
 
 import numpy as np
 import pandas as pd
@@ -26,6 +25,7 @@ import ibis.expr.operations as ops
 
 from ibis.pandas.core import scalar_types
 from ibis.pandas.dispatch import execute_node
+from ibis.compat import functools, Parameter, signature, viewkeys
 
 
 rule_to_python_type = Dispatcher(
@@ -62,7 +62,7 @@ def arguments_from_signature(signature, *args, **kwargs):
 
     Examples
     --------
-    >>> from inspect import signature
+    >>> from ibis.compat import signature
     >>> def foo(a, b=1):
     ...     return a + b
     >>> foo_sig = signature(foo)
@@ -82,7 +82,9 @@ def arguments_from_signature(signature, *args, **kwargs):
     """
     bound = signature.bind_partial(*args)
     meta_kwargs = toolz.merge({'kwargs': kwargs}, kwargs)
-    remaining_parameters = signature.parameters.keys() - bound.arguments.keys()
+    remaining_parameters = viewkeys(signature.parameters) - viewkeys(
+        bound.arguments
+    )
     new_kwargs = {
         k: meta_kwargs[k] for k in remaining_parameters
         if k in signature.parameters
@@ -117,17 +119,17 @@ def struct_rule(rule):
 
 @rule_to_python_type.register(dt.String)
 def string_rule(rule):
-    return (str,)
+    return six.string_types
 
 
 @rule_to_python_type.register(dt.Integer)
 def int_rule(rule):
-    return int, np.integer
+    return six.integer_types + (np.integer,)
 
 
 @rule_to_python_type.register(dt.Floating)
 def float_rule(rule):
-    return float, np.floating
+    return (float, np.floating)
 
 
 def nullable(datatype):
@@ -268,7 +270,7 @@ def valid_function_signature(input_type, func):
     return funcsig
 
 
-class udf:
+class udf(object):
     @staticmethod
     def elementwise(input_type, output_type):
         """Define a UDF (user-defined function) that operates element wise on a
@@ -303,7 +305,7 @@ class udf:
                 (ops.ValueOp,),
                 {
                     'signature': sig.TypeSignature.from_dtypes(input_type),
-                    'output_type': output_type.column_type
+                    'output_type': output_type.array_type
                 }
             )
 
@@ -414,7 +416,7 @@ class udf:
         return udf._grouped(
             input_type, output_type,
             base_class=ops.AnalyticOp,
-            output_type_method=operator.attrgetter('column_type'))
+            output_type_method=operator.attrgetter('array_type'))
 
     @staticmethod
     def _grouped(input_type, output_type, base_class,

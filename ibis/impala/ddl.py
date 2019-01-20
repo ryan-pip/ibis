@@ -35,7 +35,7 @@ def _is_quoted(x):
     return quoted is not None
 
 
-class ImpalaQualifiedSQLStatement:
+class ImpalaQualifiedSQLStatement(object):
 
     def _get_scoped_name(self, obj_name, database):
         if database:
@@ -166,7 +166,7 @@ class CTAS(CreateTable):
     def __init__(self, table_name, select, database=None,
                  external=False, format='parquet', can_exist=False,
                  path=None, partition=None):
-        super().__init__(
+        super(CTAS, self).__init__(
             table_name, database=database, external=external, format=format,
             can_exist=can_exist, path=path, partition=partition,
         )
@@ -195,7 +195,7 @@ class CreateView(CTAS):
     """Create a view"""
 
     def __init__(self, table_name, select, database=None, can_exist=False):
-        super().__init__(
+        super(CreateView, self).__init__(
             table_name, select, database=database, can_exist=can_exist
         )
 
@@ -213,7 +213,7 @@ class CreateTableParquet(CreateTable):
 
     def __init__(self, table_name, path, example_file=None, example_table=None,
                  schema=None, external=True, **kwargs):
-        super().__init__(
+        super(CreateTableParquet, self).__init__(
             table_name, external=external, format='parquet', path=path,
             **kwargs
         )
@@ -240,7 +240,7 @@ class CreateTableParquet(CreateTable):
 class CreateTableWithSchema(CreateTable):
 
     def __init__(self, table_name, schema, table_format=None, **kwargs):
-        super().__init__(table_name, **kwargs)
+        super(CreateTableWithSchema, self).__init__(table_name, **kwargs)
         self.schema = schema
         self.table_format = table_format
 
@@ -278,7 +278,7 @@ class CreateTableWithSchema(CreateTable):
         yield self._location()
 
 
-class DelimitedFormat:
+class DelimitedFormat(object):
 
     def __init__(self, path, delimiter=None, escapechar=None,
                  na_rep=None, lineterminator=None):
@@ -309,7 +309,7 @@ class DelimitedFormat:
             yield format_tblproperties(props)
 
 
-class AvroFormat:
+class AvroFormat(object):
 
     def __init__(self, path, avro_schema):
         self.path = path
@@ -326,7 +326,7 @@ class AvroFormat:
         yield format_tblproperties(props)
 
 
-class ParquetFormat:
+class ParquetFormat(object):
 
     def __init__(self, path):
         self.path = path
@@ -345,7 +345,7 @@ class CreateTableDelimited(CreateTableWithSchema):
                                        escapechar=escapechar,
                                        lineterminator=lineterminator,
                                        na_rep=na_rep)
-        super().__init__(
+        super(CreateTableDelimited, self).__init__(
             table_name, schema, table_format, external=external, **kwargs
         )
 
@@ -353,7 +353,7 @@ class CreateTableDelimited(CreateTableWithSchema):
 class CreateTableAvro(CreateTable):
 
     def __init__(self, table_name, path, avro_schema, external=True, **kwargs):
-        super().__init__(
+        super(CreateTableAvro, self).__init__(
             table_name, external=external, **kwargs
         )
         self.table_format = AvroFormat(path, avro_schema)
@@ -501,7 +501,7 @@ class PartitionProperties(AlterTable):
     def __init__(self, table, partition, partition_schema,
                  location=None, format=None,
                  tbl_properties=None, serde_properties=None):
-        super().__init__(
+        super(PartitionProperties, self).__init__(
             table,
             location=location, format=format,
             tbl_properties=tbl_properties,
@@ -523,7 +523,7 @@ class PartitionProperties(AlterTable):
 class AddPartition(PartitionProperties):
 
     def __init__(self, table, partition, partition_schema, location=None):
-        super().__init__(
+        super(AddPartition, self).__init__(
             table, partition, partition_schema, location=location
         )
 
@@ -540,7 +540,7 @@ class AlterPartition(PartitionProperties):
 class DropPartition(PartitionProperties):
 
     def __init__(self, table, partition, partition_schema):
-        super().__init__(table, partition, partition_schema)
+        super(DropPartition, self).__init__(table, partition, partition_schema)
 
     def compile(self):
         return self._compile('DROP')
@@ -589,7 +589,7 @@ class DropTable(DropObject):
     _object_type = 'TABLE'
 
     def __init__(self, table_name, database=None, must_exist=True):
-        super().__init__(must_exist=must_exist)
+        super(DropTable, self).__init__(must_exist=must_exist)
         self.table_name = table_name
         self.database = database
 
@@ -652,7 +652,7 @@ class DropDatabase(DropObject):
     _object_type = 'DATABASE'
 
     def __init__(self, name, must_exist=True):
-        super().__init__(must_exist=must_exist)
+        super(DropDatabase, self).__init__(must_exist=must_exist)
         self.name = name
 
     def _object_name(self):
@@ -723,7 +723,7 @@ class DropFunction(DropObject):
 
     def __init__(self, name, inputs, must_exist=True,
                  aggregate=False, database=None):
-        super().__init__(must_exist=must_exist)
+        super(DropFunction, self).__init__(must_exist=must_exist)
         self.name = name
         self.inputs = tuple(map(dt.dtype, inputs))
         self.must_exist = must_exist

@@ -1,22 +1,17 @@
 import os
-
-from pathlib import Path
-from pkg_resources import parse_version
-
+import six
 import pytest
-
 import numpy as np
-
 import pandas as pd
 import pandas.util.testing as tm
 
 import ibis
 import ibis.expr.operations as ops
-
+from ibis.compat import Path, parse_version
 from ibis.impala.tests.conftest import IbisTestEnv as ImpalaEnv
 
 
-class RoundAwayFromZero:
+class RoundAwayFromZero(object):
     def round(self, series, decimals=0):
         if not decimals:
             return (-np.sign(series) * np.ceil(-series.abs() - 0.5)).astype(
@@ -25,7 +20,7 @@ class RoundAwayFromZero:
         return series.round(decimals=decimals)
 
 
-class RoundHalfToEven:
+class RoundHalfToEven(object):
     def round(self, series, decimals=0):
         result = series.round(decimals=decimals)
         if not decimals:
@@ -33,7 +28,7 @@ class RoundHalfToEven:
         return result
 
 
-class Backend:
+class Backend(object):
     check_dtype = True
     check_names = True
     supports_arrays = True
@@ -105,19 +100,19 @@ class Backend:
         return module.dialect.make_context(params=params)
 
 
-class UnorderedComparator:
+class UnorderedComparator(object):
 
     def assert_series_equal(self, left, right, *args, **kwargs):
         left = left.sort_values().reset_index(drop=True)
         right = right.sort_values().reset_index(drop=True)
-        return super().assert_series_equal(
+        return super(UnorderedComparator, self).assert_series_equal(
             left, right, *args, **kwargs)
 
     def assert_frame_equal(self, left, right, *args, **kwargs):
         columns = list(set(left.columns) & set(right.columns))
         left = left.sort_values(by=columns)
         right = right.sort_values(by=columns)
-        return super().assert_frame_equal(
+        return super(UnorderedComparator, self).assert_frame_equal(
              left, right, *args, **kwargs)
 
 
@@ -132,7 +127,7 @@ class Pandas(Backend, RoundHalfToEven):
             'functional_alltypes': pd.read_csv(
                 str(data_directory / 'functional_alltypes.csv'),
                 index_col=None,
-                dtype={'bool_col': bool, 'string_col': str},
+                dtype={'bool_col': bool, 'string_col': six.text_type},
                 parse_dates=['timestamp_col'],
                 encoding='utf-8'
             ),
@@ -308,14 +303,14 @@ class Clickhouse(Backend, RoundHalfToEven):
             raise NotImplementedError(
                 'Clickhouse does not support more than 2 arguments to greatest'
             )
-        return super().least(f, *args)
+        return super(Clickhouse, self).least(f, *args)
 
     def least(self, f, *args):
         if len(args) > 2:
             raise NotImplementedError(
                 'Clickhouse does not support more than 2 arguments to least'
             )
-        return super().least(f, *args)
+        return super(Clickhouse, self).least(f, *args)
 
 
 class BigQuery(UnorderedComparator, Backend, RoundAwayFromZero):

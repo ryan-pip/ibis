@@ -47,7 +47,7 @@ def roots(expr, types=(ops.PhysicalTable,)):
         ))))
 
 
-class Container:
+class Container(object):
 
     __slots__ = 'data',
 

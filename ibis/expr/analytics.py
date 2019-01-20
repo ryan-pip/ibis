@@ -28,7 +28,7 @@ class BucketLike(ops.ValueOp):
 
     def output_type(self):
         dtype = dt.Category(self.nbuckets)
-        return dtype.column_type()
+        return dtype.array_type()
 
 
 class Bucket(BucketLike):
@@ -71,7 +71,7 @@ class Histogram(BucketLike):
 
     def output_type(self):
         # always undefined cardinality (for now)
-        return dt.category.column_type()
+        return dt.category.array_type()
 
 
 class CategoryLabel(ops.ValueOp):

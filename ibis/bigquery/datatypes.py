@@ -1,10 +1,11 @@
+import six
 
 from multipledispatch import Dispatcher
 
 import ibis.expr.datatypes as dt
 
 
-class TypeTranslationContext:
+class TypeTranslationContext(object):
     """A tag class to allow alteration of the way a particular type is
     translated.
 
@@ -24,7 +25,7 @@ class UDFContext(TypeTranslationContext):
 ibis_type_to_bigquery_type = Dispatcher('ibis_type_to_bigquery_type')
 
 
-@ibis_type_to_bigquery_type.register(str)
+@ibis_type_to_bigquery_type.register(six.string_types)
 def trans_string_default(datatype):
     return ibis_type_to_bigquery_type(dt.dtype(datatype))
 
@@ -34,7 +35,7 @@ def trans_default(t):
     return ibis_type_to_bigquery_type(t, TypeTranslationContext())
 
 
-@ibis_type_to_bigquery_type.register(str, TypeTranslationContext)
+@ibis_type_to_bigquery_type.register(six.string_types, TypeTranslationContext)
 def trans_string_context(datatype, context):
     return ibis_type_to_bigquery_type(dt.dtype(datatype), context)
 

@@ -23,6 +23,16 @@ from collections import namedtuple
 from contextlib import contextmanager
 import pprint
 import warnings
+import sys
+
+PY2 = sys.version_info[0] == 2
+
+if not PY2:
+    def u(s):
+        return s
+else:
+    def u(s):
+        return unicode(s, "unicode_escape")  # noqa
 
 
 DeprecatedOption = namedtuple('DeprecatedOption', 'key msg rkey removal_ver')
@@ -101,7 +111,7 @@ def _describe_option(pat='', _print_desc=True):
     if len(keys) == 0:
         raise OptionError('No such keys(s)')
 
-    s = ''
+    s = u('')
     for k in keys:  # filter by pat
         s += _build_option_description(k)
 
@@ -133,7 +143,7 @@ def get_default_val(pat):
     return _get_registered_option(key).defval
 
 
-class DictWrapper:
+class DictWrapper(object):
 
     """ provide attribute-style access to a nested dict
     """
@@ -187,7 +197,7 @@ class DictWrapper:
 # of options, and option descriptions.
 
 
-class CallableDynamicDoc:
+class CallableDynamicDoc(object):
 
     def __init__(self, func, doc_tmpl):
         self.__doc_tmpl__ = doc_tmpl
@@ -312,7 +322,7 @@ options = DictWrapper(_global_config)
 # Functions for use by pandas developers, in addition to User - api
 
 
-class option_context:
+class option_context(object):
 
     """
     Context manager to temporarily set options in the `with` statement context.
@@ -555,35 +565,29 @@ def _warn_if_deprecated(key):
 
 
 def _build_option_description(k):
-    """Builds a formatted description of a registered option and prints it."""
+    """ Builds a formatted description of a registered option and prints it """
+
     o = _get_registered_option(k)
     d = _get_deprecated_option(k)
 
-    buf = ['{} '.format(k)]
+    s = u('%s ') % k
 
     if o.doc:
-        doc = '\n'.join(o.doc.strip().splitlines())
+        s += '\n'.join(o.doc.strip().split('\n'))
     else:
-        doc = 'No description available.'
-
-    buf.append(doc)
+        s += 'No description available.'
 
     if o:
-        buf.append(
-            '\n    [default: {}] [currently: {}]'.format(
-                o.defval, _get_option(k, True)
-            )
-        )
+        s += u('\n    [default: %s] [currently: %s]') % (o.defval,
+                                                         _get_option(k, True))
 
     if d:
-        buf.append(
-            '\n    (Deprecated{})'.format(
-                ', use `{}` instead.'.format(d.rkey) if d.rkey else ''
-            )
-        )
+        s += u('\n    (Deprecated')
+        s += (u(', use `%s` instead.') % d.rkey if d.rkey else '')
+        s += u(')')
 
-    buf.append('\n\n')
-    return ''.join(buf)
+    s += '\n\n'
+    return s
 
 
 def pp_options_list(keys, width=80, _print=False):
@@ -724,4 +728,5 @@ is_int = is_type_factory(int)
 is_bool = is_type_factory(bool)
 is_float = is_type_factory(float)
 is_str = is_type_factory(str)
+# is_unicode = is_type_factory(compat.text_type)
 is_text = is_instance_factory((str, bytes))

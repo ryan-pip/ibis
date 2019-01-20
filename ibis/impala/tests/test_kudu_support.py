@@ -24,7 +24,7 @@ pytestmark = pytest.mark.kudu
 class KuduImpalaTestEnv(IbisTestEnv):
 
     def __init__(self):
-        super().__init__()
+        super(KuduImpalaTestEnv, self).__init__()
 
         # band-aid until Kudu support merged into Impala mainline
         self.test_host = os.getenv('IBIS_TEST_KIMPALA_HOST',

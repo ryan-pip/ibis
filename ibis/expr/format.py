@@ -4,7 +4,7 @@ import ibis.expr.types as ir
 import ibis.expr.operations as ops
 
 
-class FormatMemo:
+class FormatMemo(object):
     # A little sanity hack to simplify the below
 
     def __init__(self):
@@ -52,7 +52,7 @@ class FormatMemo:
         return self.formatted[self._key(expr)]
 
 
-class ExprFormatter:
+class ExprFormatter(object):
     """For creating a nice tree-like representation of an expression graph.
 
     Notes

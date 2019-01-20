@@ -6,6 +6,7 @@ import re
 
 from collections import OrderedDict
 
+import six
 
 import numpy as np
 
@@ -244,7 +245,7 @@ def execute_series_lead_lag(op, data, offset, default, **kwargs):
     (ops.Lead, ops.Lag),
     (pd.Series, SeriesGroupBy),
     timedelta_types,
-    date_types + timestamp_types + (str, type(None)),
+    date_types + timestamp_types + six.string_types + (type(None),),
 )
 def execute_series_lead_lag_timedelta(
     op, data, offset, default, aggcontext=None, **kwargs

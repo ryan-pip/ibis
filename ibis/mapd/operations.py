@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from ibis.mapd.identifiers import quote_identifier, _identifiers
 from ibis.impala import compiler as impala_compiler
-from io import StringIO
+from six import StringIO
 
 
 import ibis
@@ -386,7 +386,7 @@ def _name_expr(formatted_expr, quoted_name):
     return '{} AS {}'.format(formatted_expr, quoted_name)
 
 
-class CaseFormatter:
+class CaseFormatter(object):
 
     def __init__(self, translator, base, cases, results, default):
         self.translator = translator

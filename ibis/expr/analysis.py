@@ -40,7 +40,7 @@ def sub_for(expr, substitutions):
     return substitutor.substitute(expr, mapping)
 
 
-class Substitutor:
+class Substitutor(object):
 
     def __init__(self):
         """Initialize the Substitutor class.
@@ -93,7 +93,7 @@ class Substitutor:
             return expr._factory(new_node, name=name)
 
 
-class ScalarAggregate:
+class ScalarAggregate(object):
 
     def __init__(self, expr, memo=None, default_name='tmp'):
         self.expr = expr
@@ -234,7 +234,7 @@ def substitute_parents(expr, lift_memo=None, past_projection=True):
     return rewriter.get_result()
 
 
-class ExprSimplifier:
+class ExprSimplifier(object):
 
     """
     Rewrite the input expression by replacing any table expressions part of a
@@ -604,7 +604,7 @@ def _can_pushdown(op, predicates):
     return True
 
 
-class _PushdownValidate:
+class _PushdownValidate(object):
 
     def __init__(self, parent, predicate):
         self.parent = parent
@@ -711,7 +711,7 @@ def windowize_function(expr, w=None):
     return _windowize(expr, w)
 
 
-class Projector:
+class Projector(object):
 
     """
     Analysis and validation of projection operation, taking advantage of
@@ -813,7 +813,7 @@ def _maybe_resolve_exprs(table, exprs):
         return None
 
 
-class ExprValidator:
+class ExprValidator(object):
 
     def __init__(self, exprs):
         self.parent_exprs = exprs
@@ -912,7 +912,7 @@ class FilterValidator(ExprValidator):
         is_valid = True
 
         if isinstance(op, ops.Contains):
-            value_valid = super().validate(op.value)
+            value_valid = super(FilterValidator, self).validate(op.value)
             is_valid = value_valid
         else:
             roots_valid = []
@@ -958,25 +958,25 @@ def find_source_table(expr):
     UnboundTable[table]
       name: t
       schema:
-        a : float64
+        a : double
         b : string
     Selection[table]
       table:
         Table: ref_0
       selections:
         Table: ref_0
-        c = Add[float64*]
+        c = Add[double*]
           left:
-            a = Column[float64*] 'a' from table
+            a = Column[double*] 'a' from table
               ref_0
           right:
-            Literal[float64]
+            Literal[double]
               42.0
     >>> find_source_table(expr)
     UnboundTable[table]
       name: t
       schema:
-        a : float64
+        a : double
         b : string
     >>> left = ibis.table([('a', 'int64'), ('b', 'string')])
     >>> right = ibis.table([('c', 'int64'), ('d', 'string')])

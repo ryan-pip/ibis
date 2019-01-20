@@ -8,6 +8,7 @@ import tempfile
 import warnings
 
 import click
+import six
 
 import pandas as pd
 import sqlalchemy as sa
@@ -16,7 +17,7 @@ from toolz import dissoc
 from plumbum import local
 
 import ibis
-from pathlib import Path
+from ibis.compat import Path
 
 
 SCRIPT_DIR = Path(__file__).parent.absolute()
@@ -67,8 +68,8 @@ def read_tables(names, data_directory):
         if name == 'functional_alltypes':
             df['bool_col'] = df['bool_col'].astype(bool)
             # string_col is actually dt.int64
-            df['string_col'] = df['string_col'].astype(str)
-            df['date_string_col'] = df['date_string_col'].astype(str)
+            df['string_col'] = df['string_col'].astype(six.text_type)
+            df['date_string_col'] = df['date_string_col'].astype(six.text_type)
             # timestamp_col has object dtype
             df['timestamp_col'] = pd.to_datetime(df['timestamp_col'])
 

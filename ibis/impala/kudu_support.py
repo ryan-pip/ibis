@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from io import StringIO
+from six import StringIO
 
 import pandas as pd
 
@@ -37,7 +37,7 @@ _kudu_type_to_ibis_typeclass = {
 }
 
 
-class KuduImpalaInterface:
+class KuduImpalaInterface(object):
 
     """
     User-facing wrapper layer for the ImpalaClient

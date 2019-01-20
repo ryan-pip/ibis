@@ -215,6 +215,7 @@ Ibis
 import abc
 import operator
 
+import six
 
 from multipledispatch import Dispatcher
 
@@ -225,7 +226,8 @@ import ibis.expr.datatypes as dt
 import ibis.expr.types as ir
 
 
-class AggregationContext(abc.ABC):
+@six.add_metaclass(abc.ABCMeta)
+class AggregationContext(object):
     __slots__ = 'parent', 'group_by', 'order_by', 'dtype'
 
     def __init__(self, parent=None, group_by=None, order_by=None, dtype=None):
@@ -250,7 +252,7 @@ class Summarize(AggregationContext):
     __slots__ = ()
 
     def agg(self, grouped_data, function, *args, **kwargs):
-        if isinstance(function, str):
+        if isinstance(function, six.string_types):
             return getattr(grouped_data, function)(*args, **kwargs)
 
         if not callable(function):
@@ -291,7 +293,7 @@ class Window(AggregationContext):
     __slots__ = 'construct_window',
 
     def __init__(self, kind, *args, **kwargs):
-        super().__init__(
+        super(Window, self).__init__(
             parent=kwargs.pop('parent', None),
             group_by=kwargs.pop('group_by', None),
             order_by=kwargs.pop('order_by', None),
@@ -315,7 +317,7 @@ class Window(AggregationContext):
                 return windowed.apply(_apply(function, args, kwargs))
             else:
                 # otherwise we're a string and we're probably faster
-                assert isinstance(function, str)
+                assert isinstance(function, six.string_types)
                 method = getattr(windowed, function)
                 result = method(*args, **kwargs)
                 return result
@@ -328,7 +330,7 @@ class Window(AggregationContext):
                     _apply(function, args, kwargs),
                 )
             else:
-                assert isinstance(function, str)
+                assert isinstance(function, six.string_types)
                 method = operator.methodcaller(function, *args, **kwargs)
 
         # get the DataFrame from which the operand originated (passed in when
@@ -363,7 +365,7 @@ class Cumulative(Window):
     __slots__ = ()
 
     def __init__(self, *args, **kwargs):
-        super().__init__('expanding', *args, **kwargs)
+        super(Cumulative, self).__init__('expanding', *args, **kwargs)
 
 
 class Moving(Window):
@@ -375,7 +377,7 @@ class Moving(Window):
         preceding = compute_window_spec(preceding, dtype)
         closed = None if not isinstance(
             preceding, timedelta_types + (pd.offsets.DateOffset,)) else 'both'
-        super().__init__(
+        super(Moving, self).__init__(
             'rolling', preceding, *args, closed=closed, **kwargs
         )
 

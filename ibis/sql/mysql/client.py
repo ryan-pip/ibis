@@ -71,12 +71,12 @@ class MySQLClient(alch.AlchemyClient):
         else:
             url = sa.engine.url.make_url(url)
 
-        super().__init__(sa.create_engine(url))
+        super(MySQLClient, self).__init__(sa.create_engine(url))
         self.database_name = url.database
 
     @contextlib.contextmanager
     def begin(self):
-        with super().begin() as bind:
+        with super(MySQLClient, self).begin() as bind:
             previous_timezone = (bind.execute('SELECT @@session.time_zone')
                                      .scalar())
             try:

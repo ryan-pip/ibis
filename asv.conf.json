@@ -56,6 +56,7 @@
 	"numpy": [],
 	"pandas": [],
 	"toolz": [],
+	"six": [],
 	"multipledispatch": [],
 	"impyla": [],
 	"sqlalchemy": [],

@@ -1,7 +1,5 @@
 import sys
 
-from contextlib import suppress
-
 import ibis.config_init  # noqa: F401
 import ibis.util as util  # noqa: F401
 import ibis.expr.api as api  # noqa: F401
@@ -9,6 +7,7 @@ import ibis.expr.types as ir  # noqa: F401
 
 from ibis.config import options  # noqa: F401
 from ibis.common import IbisError
+from ibis.compat import suppress
 from ibis.filesystems import HDFS, WebHDFS  # noqa: F401
 
 # __all__ is defined

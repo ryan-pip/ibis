@@ -1,4 +1,4 @@
-.PHONY: all clean develop typecheck stop build start load restart init test testmost testfast testparams docclean doc
+.PHONY: all clean-pyc develop lint test docclean docs docserve
 
 SHELL := /bin/bash
 ENVKIND := docs
@@ -8,16 +8,10 @@ DOCKER := ENVKIND=$(ENVKIND) docker-compose -f $(COMPOSE_FILE)
 DOCKER_RUN := $(DOCKER) run --rm
 
 clean:
-	@python setup.py clean
-	@find $(MAKEFILE_DIR) -name '*.pyc' -type f -delete
-	@rm -rf $(MAKEFILE_DIR)/build $(MAKEFILE_DIR)/dist \
-	    $(find $(MAKEFILE_DIR) -name __pycache__ -type d)
+	@find . -name '*.pyc' -exec -delete
 
 develop: clean
 	@python setup.py develop
-
-typecheck:
-	@mypy --ignore-missing-imports $(MAKEFILE_DIR)/ibis
 
 lint:
 	@flake8
@@ -47,25 +41,15 @@ init: restart
 	@$(MAKE) load
 
 test:
-	@ENVKIND=$(ENVKIND) $(MAKEFILE_DIR)/ci/test.sh -n auto -m 'not udf' \
-	    --doctest-modules --doctest-ignore-import-errors
-
-testmost:
-	@ENVKIND=$(ENVKIND) $(MAKEFILE_DIR)/ci/test.sh -n auto -m 'not (udf or impala or hdfs)' \
-	    --doctest-modules --doctest-ignore-import-errors
+	@ENVKIND=$(ENVKIND) $(MAKEFILE_DIR)/ci/test.sh -n auto -m 'not udf'
 
 testfast:
-	@ENVKIND=$(ENVKIND) $(MAKEFILE_DIR)/ci/test.sh -n auto -m 'not (udf or impala or hdfs or bigquery)' \
-	    --doctest-modules --doctest-ignore-import-errors
-
-testparams:
-	@echo 'not (udf or impala or hdfs or postgresql or mysql or mapd or clickhouse)' \
-	    --doctest-modules --doctest-ignore-import-errors
+	@ENVKIND=$(ENVKIND) $(MAKEFILE_DIR)/ci/test.sh -n auto -m 'not udf and not impala and not bigquery'
 
 docclean:
 	@$(DOCKER_RUN) ibis rm -rf /tmp/docs.ibis-project.org
 
-doc: docclean
+docs: docclean
 	@$(DOCKER_RUN) ibis ping -c 1 quickstart.cloudera
 	@$(DOCKER_RUN) ibis git clone --branch gh-pages https://github.com/ibis-project/docs.ibis-project.org /tmp/docs.ibis-project.org
 	@$(DOCKER_RUN) ibis find /tmp/docs.ibis-project.org -maxdepth 1 ! -wholename /tmp/docs.ibis-project.org \

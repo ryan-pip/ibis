@@ -1,4 +1,4 @@
-from io import StringIO
+from six import StringIO
 from datetime import date, datetime
 
 import ibis.common as com
@@ -315,7 +315,7 @@ def literal(translator, expr):
         raise NotImplementedError(type(expr))
 
 
-class CaseFormatter:
+class CaseFormatter(object):
 
     def __init__(self, translator, base, cases, results, default):
         self.translator = translator

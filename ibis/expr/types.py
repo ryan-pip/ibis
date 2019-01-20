@@ -1,4 +1,6 @@
 import os
+import six
+import sys
 import itertools
 import webbrowser
 
@@ -10,7 +12,7 @@ import ibis.config as config
 
 # TODO move methods containing ops import to api.py
 
-class Expr:
+class Expr(object):
     """Base expression class"""
 
     def _type_display(self):
@@ -228,7 +230,14 @@ class Expr:
         return self.op().root_tables()
 
 
+if sys.version_info.major == 2:
+    # Python 2.7 doesn't return NotImplemented unless the other operand has
+    # an attribute called "timetuple". This is a bug that's fixed in Python 3
+    Expr.timetuple = None
+
+
 class ExprList(Expr):
+
     def _type_display(self):
         return ', '.join(expr._type_display() for expr in self.exprs())
 
@@ -285,7 +294,7 @@ class ValueExpr(Expr):
     """
 
     def __init__(self, arg, dtype, name=None):
-        super().__init__(arg)
+        super(ValueExpr, self).__init__(arg)
         self._name = name
         self._dtype = dtype
 
@@ -294,7 +303,7 @@ class ValueExpr(Expr):
             isinstance(other, ValueExpr) and
             self._name == other._name and
             self._dtype == other._dtype and
-            super().equals(other, cache=cache)
+            super(ValueExpr, self).equals(other, cache=cache)
         )
 
     def has_name(self):
@@ -394,7 +403,7 @@ class TableExpr(Expr):
         return name in self.schema()
 
     def __getitem__(self, what):
-        if isinstance(what, (str, int)):
+        if isinstance(what, six.string_types + six.integer_types):
             return self.get_column(what)
 
         if isinstance(what, slice):
@@ -469,9 +478,9 @@ class TableExpr(Expr):
         return out_exprs
 
     def _ensure_expr(self, expr):
-        if isinstance(expr, str):
+        if isinstance(expr, six.string_types):
             return self[expr]
-        elif isinstance(expr, int):
+        elif isinstance(expr, six.integer_types):
             return self[self.schema().name_at_position(expr)]
         elif not isinstance(expr, Expr):
             return expr(self)
@@ -616,24 +625,19 @@ class BinaryScalar(AnyScalar, BinaryValue): pass  # noqa: E701,E302
 class BinaryColumn(AnyColumn, BinaryValue): pass  # noqa: E701,E302
 
 
-class TemporalValue(AnyValue): pass  # noqa: E701,E302
-class TemporalScalar(AnyScalar, TemporalValue): pass  # noqa: E701,E302
-class TemporalColumn(AnyColumn, TemporalValue): pass  # noqa: E701,E302
+class TimeValue(AnyValue): pass  # noqa: E701,E302
+class TimeScalar(AnyScalar, TimeValue): pass  # noqa: E701,E302
+class TimeColumn(AnyColumn, TimeValue): pass  # noqa: E701,E302
 
 
-class TimeValue(TemporalValue): pass  # noqa: E701,E302
-class TimeScalar(TemporalScalar, TimeValue): pass  # noqa: E701,E302
-class TimeColumn(TemporalColumn, TimeValue): pass  # noqa: E701,E302
+class DateValue(AnyValue): pass  # noqa: E701,E302
+class DateScalar(AnyScalar, DateValue): pass  # noqa: E701,E302
+class DateColumn(AnyColumn, DateValue): pass  # noqa: E701,E302
 
 
-class DateValue(TemporalValue): pass  # noqa: E701,E302
-class DateScalar(TemporalScalar, DateValue): pass  # noqa: E701,E302
-class DateColumn(TemporalColumn, DateValue): pass  # noqa: E701,E302
-
-
-class TimestampValue(TemporalValue): pass  # noqa: E701,E302
-class TimestampScalar(TemporalScalar, TimestampValue): pass  # noqa: E701,E302
-class TimestampColumn(TemporalColumn, TimestampValue): pass  # noqa: E701,E302
+class TimestampValue(AnyValue): pass  # noqa: E701,E302
+class TimestampScalar(AnyScalar, TimestampValue): pass  # noqa: E701,E302
+class TimestampColumn(AnyColumn, TimestampValue): pass  # noqa: E701,E302
 
 
 class CategoryValue(AnyValue): pass  # noqa: E701,E302
@@ -845,7 +849,7 @@ def literal(value, type=None):
     int8
     >>> y = ibis.literal(42, type='double')
     >>> y.type()
-    float64
+    double
     >>> ibis.literal('foobar', type='int64')  # doctest: +ELLIPSIS
     Traceback (most recent call last):
       ...
@@ -936,7 +940,7 @@ def param(type):
     return ops.ScalarParameter(dt.dtype(type)).to_expr()
 
 
-class UnnamedMarker:
+class UnnamedMarker(object):
     pass
 
 

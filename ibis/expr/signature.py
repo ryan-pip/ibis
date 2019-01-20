@@ -1,6 +1,10 @@
+import six
+import itertools
+
 import ibis.util as util
 import ibis.expr.rules as rlz
 
+from ibis.compat import PY2
 from collections import OrderedDict
 
 try:
@@ -12,10 +16,15 @@ except ImportError:
 _undefined = object()  # marker for missing argument
 
 
-class Argument:
+class Argument(object):
     """Argument definition."""
 
-    __slots__ = 'validator', 'default', 'show'
+    if PY2:
+        # required to maintain definition order in Annotated metaclass
+        _counter = itertools.count()
+        __slots__ = '_serial', 'validator', 'default', 'show',
+    else:
+        __slots__ = 'validator', 'default', 'show',
 
     def __init__(self, validator, default=_undefined, show=True):
         """Argument constructor
@@ -35,6 +44,9 @@ class Argument:
             Whether to show this argument in an :class:`~ibis.expr.types.Expr`
             that contains it.
         """
+        if PY2:
+            self._serial = next(self._counter)
+
         self.default = default
         self.show = show
         if isinstance(validator, type):
@@ -120,9 +132,16 @@ class TypeSignature(OrderedDict):
 
 
 class AnnotableMeta(type):
-    @classmethod
-    def __prepare__(metacls, name, bases, **kwds):
-        return OrderedDict()
+
+    if PY2:
+        @staticmethod
+        def _precedes(arg1, arg2):
+            """Comparator helper for sorting name-argument pairs"""
+            return cmp(arg1[1]._serial, arg2[1]._serial)  # noqa: F821
+    else:
+        @classmethod
+        def __prepare__(metacls, name, bases, **kwds):
+            return OrderedDict()
 
     def __new__(meta, name, bases, dct):
         slots, signature = [], TypeSignature()
@@ -136,14 +155,26 @@ class AnnotableMeta(type):
                 signature.update(parent.signature)
 
         # finally apply definitions from the currently created class
-        # thanks to __prepare__ attrs are already ordered
-        attribs = {}
-        for k, v in dct.items():
-            if isinstance(v, Argument):
-                # so we can set directly
-                signature[k] = v
-            else:
-                attribs[k] = v
+        if PY2:
+            # on python 2 we cannot maintain definition order
+            attribs, arguments = {}, []
+            for k, v in dct.items():
+                if isinstance(v, Argument):
+                    arguments.append((k, v))
+                else:
+                    attribs[k] = v
+
+            # so we need to sort arguments based on their unique counter
+            signature.update(sorted(arguments, cmp=meta._precedes))
+        else:
+            # thanks to __prepare__ attrs are already ordered
+            attribs = {}
+            for k, v in dct.items():
+                if isinstance(v, Argument):
+                    # so we can set directly
+                    signature[k] = v
+                else:
+                    attribs[k] = v
 
         # if slots or signature are defined no inheritance happens
         signature = attribs.get('signature', signature)
@@ -152,10 +183,11 @@ class AnnotableMeta(type):
         attribs['signature'] = signature
         attribs['__slots__'] = tuple(unique(slots))
 
-        return super().__new__(meta, name, bases, attribs)
+        return super(AnnotableMeta, meta).__new__(meta, name, bases, attribs)
 
 
-class Annotable(metaclass=AnnotableMeta):
+@six.add_metaclass(AnnotableMeta)
+class Annotable(object):
 
     __slots__ = ()
 

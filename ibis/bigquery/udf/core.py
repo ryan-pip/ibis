@@ -9,6 +9,7 @@ import functools
 import inspect
 import textwrap
 
+import six
 
 import ibis.expr.datatypes as dt
 
@@ -46,7 +47,7 @@ def indent(lines, spaces=4):
     -------
     indented_lines : str
     """
-    if isinstance(lines, str):
+    if isinstance(lines, six.string_types):
         text = [lines]
     text = '\n'.join(lines)
     return textwrap.indent(text, ' ' * spaces)

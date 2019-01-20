@@ -5,12 +5,13 @@ from os import path as osp
 import os
 import shutil
 
-from io import BytesIO
+from six import BytesIO
 
 import pytest
 
 from ibis.filesystems import HDFS
 from ibis.impala.tests.conftest import IbisTestEnv
+import ibis.compat as compat
 import ibis.util as util
 import ibis
 
@@ -514,4 +515,5 @@ def _get_all_files(path):
 
 
 def guidbytes():
-    return util.guid().encode('utf8')
+    guid = util.guid()
+    return guid if compat.PY2 else guid.encode('utf8')

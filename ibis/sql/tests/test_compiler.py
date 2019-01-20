@@ -277,7 +277,7 @@ def _table_wrapper(name, tname=None):
     return f
 
 
-class ExprTestCases:
+class ExprTestCases(object):
 
     _schemas = {
         'foo': [

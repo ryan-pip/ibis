@@ -1,3 +1,4 @@
+import six
 import enum
 import ibis
 import pytest
@@ -39,7 +40,7 @@ def test_invalid_datatype(value, expected):
 
 @pytest.mark.parametrize(('klass', 'value', 'expected'), [
     (int, 32, 32),
-    (str, 'foo', 'foo'),
+    (six.string_types, 'foo', 'foo'),
     (dt.Integer, dt.int8, dt.int8),
 ])
 def test_valid_instance_of(klass, value, expected):
@@ -125,12 +126,12 @@ class Foo(enum.Enum):
     b = 2
 
 
-class Bar:
+class Bar(object):
     a = 'A'
     b = 'B'
 
 
-class Baz:
+class Baz(object):
 
     def __init__(self, a):
         self.a = a

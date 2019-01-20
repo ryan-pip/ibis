@@ -1,5 +1,6 @@
 import operator
 
+import six
 
 import pandas as pd
 from pandas.core.groupby import SeriesGroupBy
@@ -21,7 +22,7 @@ def execute_array_length_scalar(op, data, **kwargs):
 
 @execute_node.register(
     ops.ArraySlice,
-    pd.Series, int, (int, type(None))
+    pd.Series, six.integer_types, (six.integer_types, type(None))
 )
 def execute_array_slice(op, data, start, stop, **kwargs):
     return data.apply(operator.itemgetter(slice(start, stop)))
@@ -29,13 +30,13 @@ def execute_array_slice(op, data, start, stop, **kwargs):
 
 @execute_node.register(
     ops.ArraySlice,
-    list, int, (int, type(None))
+    list, six.integer_types, (six.integer_types, type(None))
 )
 def execute_array_slice_scalar(op, data, start, stop, **kwargs):
     return data[start:stop]
 
 
-@execute_node.register(ops.ArrayIndex, pd.Series, int)
+@execute_node.register(ops.ArrayIndex, pd.Series, six.integer_types)
 def execute_array_index(op, data, index, **kwargs):
     return data.apply(
         lambda array, index=index: (
@@ -44,7 +45,7 @@ def execute_array_index(op, data, index, **kwargs):
     )
 
 
-@execute_node.register(ops.ArrayIndex, list, int)
+@execute_node.register(ops.ArrayIndex, list, six.integer_types)
 def execute_array_index_scalar(op, data, index, **kwargs):
     try:
         return data[index]
@@ -60,8 +61,8 @@ def execute_array_concat(op, left, right, **kwargs):
 
 
 @execute_node.register(ops.ArrayRepeat, pd.Series, pd.Series)
-@execute_node.register(ops.ArrayRepeat, int, (pd.Series, list))
-@execute_node.register(ops.ArrayRepeat, (pd.Series, list), int)
+@execute_node.register(ops.ArrayRepeat, six.integer_types, (pd.Series, list))
+@execute_node.register(ops.ArrayRepeat, (pd.Series, list), six.integer_types)
 def execute_array_repeat(op, left, right, **kwargs):
     return left * right
 

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from io import StringIO
+from six import StringIO
 import pandas as pd
 
 
@@ -77,7 +77,7 @@ def _try_int(x):
         return x
 
 
-class MetadataParser:
+class MetadataParser(object):
 
     """
     A simple state-ish machine to parse the results of DESCRIBE FORMATTED
@@ -269,7 +269,7 @@ def _get_meta(attr, key):
     return f
 
 
-class TableMetadata:
+class TableMetadata(object):
 
     """
     Container for the parsed and wrangled results of DESCRIBE FORMATTED for
@@ -315,9 +315,9 @@ class TableMetadata:
     serde_properties = _get_meta('storage', 'Desc Params')
 
 
-class TableInfo:
+class TableInfo(object):
     pass
 
 
-class TableStorageInfo:
+class TableStorageInfo(object):
     pass

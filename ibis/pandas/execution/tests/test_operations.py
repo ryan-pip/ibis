@@ -13,6 +13,8 @@ import pandas.util.testing as tm
 import ibis
 import ibis.expr.datatypes as dt
 
+pytest.importorskip('multipledispatch')
+
 pytestmark = pytest.mark.pandas
 
 

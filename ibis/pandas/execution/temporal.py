@@ -1,3 +1,4 @@
+import six
 import datetime
 import numpy as np
 import pandas as pd
@@ -12,12 +13,12 @@ from ibis.pandas.core import (
     numeric_types, integer_types, timestamp_types, timedelta_types)
 
 
-@execute_node.register(ops.Strftime, pd.Timestamp, str)
+@execute_node.register(ops.Strftime, pd.Timestamp, six.string_types)
 def execute_strftime_timestamp_str(op, data, format_string, **kwargs):
     return data.strftime(format_string)
 
 
-@execute_node.register(ops.Strftime, pd.Series, str)
+@execute_node.register(ops.Strftime, pd.Series, six.string_types)
 def execute_strftime_series_str(op, data, format_string, **kwargs):
     return data.dt.strftime(format_string)
 
@@ -165,7 +166,7 @@ def pre_execute_timestamp_now(op, *args, **kwargs):
     return {op: pd.Timestamp('now')}
 
 
-@execute_node.register(ops.DayOfWeekIndex, (str, datetime.date,))
+@execute_node.register(ops.DayOfWeekIndex, six.string_types + (datetime.date,))
 def execute_day_of_week_index_any(op, value, **kwargs):
     return pd.Timestamp(value).dayofweek
 
@@ -199,7 +200,7 @@ def day_name(obj):
         return obj.weekday_name
 
 
-@execute_node.register(ops.DayOfWeekName, (str, datetime.date,))
+@execute_node.register(ops.DayOfWeekName, six.string_types + (datetime.date,))
 def execute_day_of_week_name_any(op, value, **kwargs):
     return day_name(pd.Timestamp(value))
 

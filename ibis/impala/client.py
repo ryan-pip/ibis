@@ -1,10 +1,11 @@
-import io
 import operator
 import re
 import threading
 import time
 import traceback
 import weakref
+
+import six
 
 from posixpath import join as pjoin
 from collections import deque
@@ -22,7 +23,7 @@ import ibis.expr.operations as ops
 
 from ibis.config import options
 from ibis.client import Query, Database, DatabaseEntity, SQLClient
-from pkg_resources import parse_version
+from ibis.compat import parse_version, zip
 from ibis.filesystems import HDFS, WebHDFS
 from ibis.impala import udf, ddl
 from ibis.impala.compat import impyla, ImpylaError, HS2Error
@@ -50,7 +51,7 @@ class ImpalaDatabase(Database):
                                      database=self.name)
 
 
-class ImpalaConnection:
+class ImpalaConnection(object):
 
     """
     Database connection wrapper
@@ -160,7 +161,7 @@ class ImpalaConnection:
         self.connection_pool.append(cur)
 
 
-class ImpalaCursor:
+class ImpalaCursor(object):
 
     def __init__(self, cursor, con, impyla_con, database,
                  options):
@@ -287,8 +288,9 @@ class ImpalaQuery(Query):
 
 
 def _column_batches_to_dataframe(names, batches):
+    from ibis.compat import zip as czip
     cols = {}
-    for name, chunks in zip(names, zip(*[b.columns for b in batches])):
+    for name, chunks in czip(names, czip(*[b.columns for b in batches])):
         cols[name] = _chunks_to_pandas_array(chunks)
     return pd.DataFrame(cols, columns=names)
 
@@ -1843,14 +1845,14 @@ def _split_signature(x):
 _arg_type = re.compile(r'(.*)\.\.\.|([^\.]*)')
 
 
-class _type_parser:
+class _type_parser(object):
 
     NORMAL, IN_PAREN = 0, 1
 
     def __init__(self, value):
         self.value = value
         self.state = self.NORMAL
-        self.buf = io.StringIO()
+        self.buf = six.StringIO()
         self.types = []
         for c in value:
             self._step(c)
@@ -1860,7 +1862,7 @@ class _type_parser:
         val = self.buf.getvalue().strip()
         if val:
             self.types.append(val)
-        self.buf = io.StringIO()
+        self.buf = six.StringIO()
 
     def _step(self, c):
         if self.state == self.NORMAL:

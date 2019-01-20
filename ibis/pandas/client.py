@@ -3,8 +3,8 @@ from __future__ import absolute_import
 import re
 
 from functools import partial
-from pkg_resources import parse_version
 
+import six
 import pytz
 import toolz
 import numpy as np
@@ -22,9 +22,7 @@ import ibis.expr.datatypes as dt
 import ibis.expr.operations as ops
 
 from ibis.compat import (
-    DatetimeTZDtype,
-    CategoricalDtype,
-    infer_dtype
+    PY2, DatetimeTZDtype, CategoricalDtype, parse_version, infer_dtype
 )
 
 
@@ -155,7 +153,7 @@ def infer_pandas_schema(df, schema=None):
 
     pairs = []
     for column_name, pandas_dtype in df.dtypes.iteritems():
-        if not isinstance(column_name, str):
+        if not isinstance(column_name, six.string_types):
             raise TypeError(
                 'Column names must be strings to use the pandas backend'
             )
@@ -284,6 +282,8 @@ def convert_any_to_interval(_, out_dtype, column):
 @convert.register(np.dtype, dt.String, pd.Series)
 def convert_any_to_string(_, out_dtype, column):
     result = column.astype(out_dtype.to_pandas(), errors='ignore')
+    if PY2:
+        return column.str.decode('utf-8', errors='ignore')
     return result
 
 
