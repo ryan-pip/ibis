@@ -670,7 +670,7 @@ def _format_schema_element(name, t, d):
         quote_identifier(name, force=True), _type_to_sql_string(t)
     )
     if d is not None :
-        elem += "COMMENT '" + d + '"'
+        elem += " COMMENT '" + d + "'"
     return elem
 
 

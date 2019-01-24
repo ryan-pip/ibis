@@ -141,7 +141,11 @@ class MetadataParser(object):
             tup = self._next_tuple()
             if tup[0].strip() == '':
                 break
-            schema.append((tup[0], tup[1]))
+            if type(tup[2]) != str :
+                desc = None
+            else :
+                desc = tup[2]
+            schema.append((tup[0], tup[1], desc))
 
         return schema
 
