@@ -33,7 +33,7 @@ class Schema(object):
         if descriptions is None :
             self.descriptions = [None] * len(names)
         else :
-            self.descriptions = descriptions
+            self.descriptions = [None if d == '' else d for d in descriptions]
 
         self._name_locs = dict((v, i) for i, v in enumerate(self.names))
 
@@ -41,11 +41,12 @@ class Schema(object):
             raise com.IntegrityError('Duplicate column names')
 
     def __repr__(self):
-        space = 2 + max(map(len, self.names))
+        name_space = 2 + max(map(len, self.names))
+        type_space = 2 + max([len(str(t)) for t in self.types])
         return "ibis.Schema {{{}\n}}".format(
             util.indent(
                 ''.join(
-                    '\n{}{}{}'.format(name.ljust(space), str(type).ljust(space), description)
+                    '\n{}{}{}'.format(name.ljust(name_space), str(type).ljust(type_space), description)
                     for name, type, description in zip(self.names, self.types, self.descriptions)
                 ),
                 2
@@ -192,6 +193,7 @@ def schema_from_pairs(lst):
 @schema.register(collections.Iterable, collections.Iterable)
 def schema_from_names_types(names, types):
     return Schema(names, types)
+
 
 @schema.register(collections.Iterable, collections.Iterable, collections.Iterable)
 def schema_from_names_types_descriptions(names, types, descriptions):

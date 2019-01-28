@@ -160,8 +160,12 @@ class ExprFormatter(object):
         table = expr.op()
         # format the schema
         rows = ['name: {0!s}\nschema:'.format(table.name)]
-        rows.extend(['  %s : %s' % tup for tup in
-                     zip(table.schema.names, table.schema.types)])
+        rows.extend(['  %s : %s%s' % tup for tup in
+                     zip(
+                         table.schema.names, 
+                         table.schema.types, 
+                         [' [ %s ]' % t if t is not None else '' for t in table.schema.descriptions])
+                    ])
         opname = type(table).__name__
         type_display = self._get_type_display(expr)
         opline = '%s[%s]' % (opname, type_display)

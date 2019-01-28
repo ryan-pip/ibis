@@ -965,14 +965,13 @@ class ImpalaClient(SQLClient):
         qualified_name = self._fully_qualified_name(table_name, database)
         query = 'DESCRIBE {}'.format(qualified_name)
 
-        # only pull out the first two columns which are names and types
-        pairs = [row[:2] for row in self.con.fetchall(query)]
+        columns = self.con.fetchall(query)
 
-        names, types = zip(*pairs)
+        names, types, descriptions = zip(*columns)
         ibis_types = [udf.parse_type(type.lower()) for type in types]
         names = [name.lower() for name in names]
 
-        return sch.Schema(names, ibis_types)
+        return sch.Schema(names, ibis_types, descriptions)
 
     @property
     def client_options(self):
